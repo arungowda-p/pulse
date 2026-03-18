@@ -1,81 +1,98 @@
-# LaunchDarkly MVP — Nx Monorepo
+# Pulse
 
-Feature flag service (LaunchDarkly-style) built with **Nx**, **React**, and **Tailwind CSS**.
+A feature flag management platform built with **Nx**, **Next.js**, **Prisma**, and **Tailwind CSS**.
+
+## Architecture
+
+Pulse uses a **3-tier flag evaluation** model:
+
+```
+Project Defaults → Environment Overrides → Client Overrides
+```
+
+- **Projects** contain flags and environments
+- **Environments** (e.g. Production, Staging) scope flag overrides and contain clients
+- **Clients** (e.g. Web App, Mobile App) can override flags at the most granular level
+- Flag evaluation resolves: client override > environment override > project default
 
 ## Structure
 
-| Project     | Path           | Tech              | Description                    |
-|------------|----------------|-------------------|--------------------------------|
-| **dashboard** | `apps/dashboard` | React, Vite, Tailwind | UI to create/edit/toggle flags |
-| **api**       | `apps/api`       | Express (Node)       | REST API: flags CRUD + eval     |
-| **sdk**       | `libs/sdk`       | TypeScript            | Client SDK for flag evaluation |
+| Project       | Path               | Tech                        | Description                              |
+|---------------|--------------------|-----------------------------|------------------------------------------|
+| **dashboard** | `apps/dashboard`   | Next.js, Prisma, Tailwind   | UI to manage projects, flags, and overrides |
 
-## Quick start
+## Quick Start
 
-1. **Install dependencies** (from repo root):
+1. **Install dependencies:**
 
    ```bash
    npm install
    ```
 
-2. **Run API and dashboard** (two terminals, or use the combined script):
+2. **Set up the database:**
 
    ```bash
-   # Terminal 1 — API (port 3000)
-   npx nx serve api
-
-   # Terminal 2 — Dashboard (port 4200, proxies /api to 3000)
-   npx nx serve dashboard
+   cd apps/dashboard
+   npx prisma db push
+   npx prisma db seed
    ```
 
-   Or run both with:
+3. **Run the dashboard:**
 
    ```bash
-   npm start
+   npx nx dev dashboard
    ```
 
-3. **Open**
-
-   - Dashboard: http://localhost:4200  
-   - API: http://localhost:3000/api/flags  
-   - SDK demo: http://localhost:4200/demo.html  
-
-## Scripts
-
-| Command              | Description                    |
-|----------------------|--------------------------------|
-| `npm start`          | Run API + dashboard in parallel |
-| `npm run start:dashboard` | Run dashboard only (port 4200) |
-| `npm run start:api`  | Run API only (port 3000)       |
-| `npm run build:dashboard` | Build dashboard for production |
-| `npx nx serve api`  | Serve API                      |
-| `npx nx serve dashboard` | Serve dashboard             |
+4. **Open:** http://localhost:4200
 
 ## API
 
-- `GET /api/flags` — list flags  
-- `GET /api/flags/:key` — get one flag  
-- `POST /api/flags` — create flag `{ key, name?, description? }`  
-- `PATCH /api/flags/:key` — update `{ name?, description?, on? }`  
-- `DELETE /api/flags/:key` — delete flag  
-- `GET /api/eval/:flagKey?user=xxx` — evaluate flag (for SDK)  
-- `POST /api/eval` — bulk evaluate `{ keys: [], context: {} }`  
+### Projects
 
-## Using the SDK
+- `GET /api/projects` — list all projects
+- `POST /api/projects` — create project `{ name, slug }`
+- `GET /api/projects/:slug` — get project details
+- `PUT /api/projects/:slug` — update project
+- `DELETE /api/projects/:slug` — delete project
 
-```ts
-import { createClient } from '@launchdarkly-nx/sdk';
+### Environments
 
-const client = createClient({ baseUrl: 'http://localhost:3000' });
-const on = await client.variation('new-checkout', { key: 'user-123' });
-```
+- `GET /api/projects/:slug/environments` — list environments
+- `POST /api/projects/:slug/environments` — create environment `{ name }`
+- `GET /api/projects/:slug/environments/:envSlug` — get environment
+- `PUT /api/projects/:slug/environments/:envSlug` — update environment
+- `DELETE /api/projects/:slug/environments/:envSlug` — delete environment
 
-The dashboard app uses the REST API directly; the SDK in `libs/sdk` is for other apps that need to evaluate flags.
+### Clients
+
+- `GET /api/projects/:slug/environments/:envSlug/clients` — list clients
+- `POST /api/projects/:slug/environments/:envSlug/clients` — create client `{ name }`
+- `PUT /api/projects/:slug/environments/:envSlug/clients/:clientId` — update client
+- `DELETE /api/projects/:slug/environments/:envSlug/clients/:clientId` — delete client
+
+### Flags
+
+- `GET /api/projects/:slug/flags` — list flags
+- `POST /api/projects/:slug/flags` — create flag `{ key, name?, description? }`
+- `GET /api/projects/:slug/flags/:key` — get flag with overrides
+- `PATCH /api/projects/:slug/flags/:key` — update flag `{ name?, description?, on? }`
+- `DELETE /api/projects/:slug/flags/:key` — delete flag
+
+### Overrides
+
+- `PUT /api/projects/:slug/flags/:key/env-overrides/:environmentId` — set environment override
+- `DELETE /api/projects/:slug/flags/:key/env-overrides/:environmentId` — remove environment override
+- `PUT /api/projects/:slug/flags/:key/overrides/:clientId` — set client override
+- `DELETE /api/projects/:slug/flags/:key/overrides/:clientId` — remove client override
+
+### Evaluation
+
+- `GET /api/eval/:projectSlug/:flagKey?environmentId=...&clientId=...` — evaluate a flag
 
 ## Stack
 
-- **Nx** — monorepo and task runner  
-- **React 18** + **Vite** — dashboard  
-- **Tailwind CSS** — styling  
-- **Express** — API server  
-- **TypeScript** — dashboard + SDK  
+- **Nx** — monorepo and task runner
+- **Next.js 15** — dashboard (App Router)
+- **Prisma** + **SQLite** — data layer
+- **Tailwind CSS** — styling
+- **TypeScript** — throughout
