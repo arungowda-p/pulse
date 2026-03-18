@@ -5,7 +5,7 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
+      "executor": "@nx/next:build",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
@@ -13,25 +13,27 @@
       },
       "configurations": {
         "development": {
-          "mode": "development"
+          "outputPath": "apps/dashboard"
         },
-        "production": {
-          "mode": "production"
-        }
+        "production": {}
       }
     },
     "serve": {
-      "executor": "@nx/vite:dev-server",
+      "executor": "@nx/next:server",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "dashboard:build"
+        "buildTarget": "dashboard:build",
+        "dev": true,
+        "port": 4200
       },
       "configurations": {
         "development": {
-          "buildTarget": "dashboard:build:development"
+          "buildTarget": "dashboard:build:development",
+          "dev": true
         },
         "production": {
-          "buildTarget": "dashboard:build:production"
+          "buildTarget": "dashboard:build:production",
+          "dev": false
         }
       }
     }

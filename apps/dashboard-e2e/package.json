@@ -4,7 +4,7 @@
   "private": true,
   "nx": {
     "implicitDependencies": [
-      "@launchdarkly-nx/dashboard"
+      "dashboard"
     ]
   }
 }

@@ -1,34 +1,44 @@
 {
-  "name": "@launchdarkly-nx/source",
+  "name": "@pulse/source",
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "start": "nx run-many -t serve -p dashboard,api --parallel=2",
+    "start": "nx serve dashboard",
     "start:dashboard": "nx serve dashboard",
-    "start:api": "nx serve api",
     "build": "nx run-many -t build -p dashboard,sdk",
-    "build:dashboard": "nx build dashboard",
-    "build:api": "nx build api"
+    "build:dashboard": "nx build dashboard"
   },
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  },
   "devDependencies": {
+    "@nx/eslint-plugin": "22.5.4",
+    "@nx/next": "22.5.4",
     "@nx/playwright": "22.5.4",
     "@nx/react": "22.5.4",
-    "@nx/vite": "22.5.4",
     "@nx/workspace": "22.5.4",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "next": "^14.2.0",
     "nx": "22.5.4",
+    "postcss": "^8.4.49",
+    "prisma": "^5.22.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^6.0.3",
+    "react-icons": "^5.4.0",
+    "tailwindcss": "^3.4.15",
+    "tsx": "^4.21.0",
     "typescript": "~5.7.2",
-    "express": "^4.21.0",
-    "cors": "^2.8.5",
-    "uuid": "^11.0.3"
+    "typescript-eslint": "^8.0.0"
+  },
+  "prisma": {
+    "seed": "npx tsx apps/dashboard/prisma/seed.ts"
   },
   "workspaces": [
     "apps/*",
