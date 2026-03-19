@@ -67,11 +67,36 @@ async function main() {
   /* ── Flags ──────────────────────────────────────────── */
 
   const flagDefs = [
-    { key: 'new-checkout', name: 'New Checkout Flow', description: 'Enable the redesigned checkout experience', on: false },
-    { key: 'dark-mode', name: 'Dark Mode', description: 'Application-wide dark colour scheme', on: false },
-    { key: 'promo-banner', name: 'Promo Banner', description: 'Show promotional banner at the top of the page', on: false },
-    { key: 'maintenance-mode', name: 'Maintenance Mode', description: 'Show maintenance overlay, blocking all interactions', on: false },
-    { key: 'user-feedback', name: 'Feedback Widget', description: 'Floating widget for collecting user feedback', on: false },
+    {
+      key: 'new-checkout',
+      name: 'New Checkout Flow',
+      description: 'Enable the redesigned checkout experience',
+      on: false,
+    },
+    {
+      key: 'dark-mode',
+      name: 'Dark Mode',
+      description: 'Application-wide dark colour scheme',
+      on: false,
+    },
+    {
+      key: 'promo-banner',
+      name: 'Promo Banner',
+      description: 'Show promotional banner at the top of the page',
+      on: false,
+    },
+    {
+      key: 'maintenance-mode',
+      name: 'Maintenance Mode',
+      description: 'Show maintenance overlay, blocking all interactions',
+      on: false,
+    },
+    {
+      key: 'user-feedback',
+      name: 'Feedback Widget',
+      description: 'Floating widget for collecting user feedback',
+      on: false,
+    },
   ];
   const flagIds: Record<string, string> = {};
 
