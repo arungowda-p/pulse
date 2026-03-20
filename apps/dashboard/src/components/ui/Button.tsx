@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';

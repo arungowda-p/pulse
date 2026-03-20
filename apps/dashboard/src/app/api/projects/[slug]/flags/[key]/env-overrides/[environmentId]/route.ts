@@ -3,18 +3,21 @@ import {
   setEnvOverride,
   removeEnvOverride,
 } from '../../../../../../../../lib/flags-store';
+import { requireProjectAccess } from '../../../../../../../../lib/auth';
 
 export async function PUT(
   request: NextRequest,
-  {
-    params,
-  }: { params: { slug: string; key: string; environmentId: string } },
+  { params }: { params: Promise<{ slug: string; key: string; environmentId: string }> },
 ) {
+  const { slug, key, environmentId } = await params;
+  const auth = await requireProjectAccess(request, slug);
+  if (auth instanceof NextResponse) return auth;
+
   const body = await request.json();
   const result = await setEnvOverride(
-    params.slug,
-    params.key,
-    params.environmentId,
+    slug,
+    key,
+    environmentId,
     !!body.on,
   );
   if (!result) {
@@ -28,14 +31,16 @@ export async function PUT(
 
 export async function DELETE(
   _request: NextRequest,
-  {
-    params,
-  }: { params: { slug: string; key: string; environmentId: string } },
+  { params }: { params: Promise<{ slug: string; key: string; environmentId: string }> },
 ) {
+  const { slug, key, environmentId } = await params;
+  const auth = await requireProjectAccess(_request, slug);
+  if (auth instanceof NextResponse) return auth;
+
   const removed = await removeEnvOverride(
-    params.slug,
-    params.key,
-    params.environmentId,
+    slug,
+    key,
+    environmentId,
   );
   if (!removed) {
     return NextResponse.json(

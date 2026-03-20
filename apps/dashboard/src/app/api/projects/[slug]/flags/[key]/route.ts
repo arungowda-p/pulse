@@ -4,12 +4,17 @@ import {
   updateFlag,
   deleteFlag,
 } from '../../../../../../lib/flags-store';
+import { requireProjectAccess, requireAuth } from '../../../../../../lib/auth';
 
 export async function GET(
-  _request: NextRequest,
-  { params }: { params: { slug: string; key: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string; key: string }> },
 ) {
-  const flag = await getFlag(params.slug, params.key);
+  const { slug, key } = await params;
+  const auth = await requireProjectAccess(request, slug);
+  if (auth instanceof NextResponse) return auth;
+
+  const flag = await getFlag(slug, key);
   if (!flag) {
     return NextResponse.json({ error: 'Flag not found' }, { status: 404 });
   }
@@ -18,10 +23,19 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { slug: string; key: string } },
+  { params }: { params: Promise<{ slug: string; key: string }> },
 ) {
+  const { slug, key } = await params;
+  const auth = await requireAuth(request, ['ADMIN', 'PROJECT_ADMIN']);
+  if (auth instanceof NextResponse) return auth;
+
+  if (auth.role === 'PROJECT_ADMIN') {
+    const accessCheck = await requireProjectAccess(request, slug);
+    if (accessCheck instanceof NextResponse) return accessCheck;
+  }
+
   const body = await request.json();
-  const flag = await updateFlag(params.slug, params.key, body);
+  const flag = await updateFlag(slug, key, body);
   if (!flag) {
     return NextResponse.json({ error: 'Flag not found' }, { status: 404 });
   }
@@ -29,10 +43,19 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: { slug: string; key: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string; key: string }> },
 ) {
-  const deleted = await deleteFlag(params.slug, params.key);
+  const { slug, key } = await params;
+  const auth = await requireAuth(request, ['ADMIN', 'PROJECT_ADMIN']);
+  if (auth instanceof NextResponse) return auth;
+
+  if (auth.role === 'PROJECT_ADMIN') {
+    const accessCheck = await requireProjectAccess(request, slug);
+    if (accessCheck instanceof NextResponse) return accessCheck;
+  }
+
+  const deleted = await deleteFlag(slug, key);
   if (!deleted) {
     return NextResponse.json({ error: 'Flag not found' }, { status: 404 });
   }

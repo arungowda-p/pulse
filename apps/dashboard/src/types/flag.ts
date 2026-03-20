@@ -52,3 +52,17 @@ export interface FlagWithOverrides extends Flag {
   overrides: Override[];
   envOverrides: EnvOverride[];
 }
+
+export type Role = 'ADMIN' | 'PROJECT_ADMIN' | 'CLIENT_ADMIN';
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  role: Role;
+}
+
+export interface UserRecord extends AuthUser {
+  createdAt: string;
+  updatedAt: string;
+}

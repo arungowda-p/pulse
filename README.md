@@ -22,7 +22,22 @@ Project Defaults → Environment Overrides → Client Overrides
 - **Environment scoping** — define environments (Production, Staging, etc.) with independent flag overrides
 - **Client-level targeting** — override flags for specific clients (Web App, Mobile App, API Server)
 - **3-tier evaluation API** — resolve the effective flag value through project → environment → client cascade
+- **Authentication** — JWT-based login with username or email, HTTP-only cookie sessions
+- **Role-based access control** — three roles with cascading permissions (see below)
+- **User management API** — admins can create users and assign them to projects or clients
 - **SDK** — lightweight client SDK (`@launchdarkly-nx/sdk`) for evaluating flags from any JS/TS app
+
+## Roles & Permissions
+
+| Role              | Scope                          | Can Do                                                         |
+|-------------------|--------------------------------|----------------------------------------------------------------|
+| **Admin**         | Everything                     | Full CRUD on projects, flags, environments, clients, and users |
+| **Project Admin** | Assigned projects              | Manage flags, environments, and clients within those projects  |
+| **Client Admin**  | Assigned clients               | Toggle flag overrides for their specific clients               |
+
+- Admins can assign any user to any project or client
+- Project Admins see only the projects they are assigned to
+- Client Admins see only the projects containing their assigned clients
 
 ## Structure
 
@@ -78,6 +93,11 @@ pulse-nx/
 
 4. **Open:** http://localhost:4200
 
+5. **Login with the seeded admin account:**
+
+   - Username: `arun-admin`
+   - Password: `P@ssw0rd1!`
+
 ## Database Schema
 
 | Model                | Key Fields                                      | Relationships                          |
@@ -88,6 +108,9 @@ pulse-nx/
 | **Flag**             | `id`, `key`, `name`, `description`, `on`        | → Project, EnvFlagOverrides, ClientFlagOverrides |
 | **EnvFlagOverride**  | `id`, `environmentId`, `flagId`, `on`           | → Environment, Flag                    |
 | **ClientFlagOverride** | `id`, `clientId`, `flagId`, `on`              | → Client, Flag                         |
+| **User**             | `id`, `username`, `email`, `passwordHash`, `role` | → UserProjectAccess, UserClientAccess |
+| **UserProjectAccess** | `id`, `userId`, `projectId`                    | → User, Project                        |
+| **UserClientAccess** | `id`, `userId`, `clientId`                      | → User, Client                         |
 
 ## API
 
@@ -140,6 +163,28 @@ All endpoints are served by the dashboard app under `/api`.
 | `DELETE` | `/api/projects/:slug/flags/:key/env-overrides/:environmentId`| —            | Remove environment override |
 | `PUT`    | `/api/projects/:slug/flags/:key/overrides/:clientId`         | `{ on }`     | Set client override       |
 | `DELETE` | `/api/projects/:slug/flags/:key/overrides/:clientId`         | —            | Remove client override    |
+
+### Authentication
+
+| Method | Path                | Body / Params                | Description                    |
+|--------|---------------------|------------------------------|--------------------------------|
+| `POST` | `/api/auth/login`   | `{ login, password }`        | Login (username or email)      |
+| `POST` | `/api/auth/logout`  | —                            | Logout (clears session cookie) |
+| `GET`  | `/api/auth/me`      | —                            | Get current authenticated user |
+
+### Users (Admin only)
+
+| Method   | Path                              | Body / Params                              | Description                |
+|----------|-----------------------------------|--------------------------------------------|----------------------------|
+| `GET`    | `/api/users`                     | —                                          | List all users             |
+| `POST`   | `/api/users`                     | `{ username, email, password, role? }`    | Create a user              |
+| `GET`    | `/api/users/:userId`             | —                                          | Get user with access list  |
+| `PATCH`  | `/api/users/:userId`             | `{ username?, email?, password?, role? }` | Update user                |
+| `DELETE` | `/api/users/:userId`             | —                                          | Delete user                |
+| `POST`   | `/api/users/:userId/projects`    | `{ projectId }`                           | Grant project access       |
+| `DELETE` | `/api/users/:userId/projects`    | `{ projectId }`                           | Revoke project access      |
+| `POST`   | `/api/users/:userId/clients`     | `{ clientId }`                            | Grant client access        |
+| `DELETE` | `/api/users/:userId/clients`     | `{ clientId }`                            | Revoke client access       |
 
 ### Evaluation
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { HiFlag } from 'react-icons/hi2';
 
 interface EmptyStateProps {

@@ -4,12 +4,17 @@ import {
   updateProject,
   deleteProject,
 } from '../../../../lib/project-store';
+import { requireProjectAccess, requireAuth } from '../../../../lib/auth';
 
 export async function GET(
-  _request: NextRequest,
-  { params }: { params: { slug: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const project = await getProject(params.slug);
+  const { slug } = await params;
+  const auth = await requireProjectAccess(request, slug);
+  if (auth instanceof NextResponse) return auth;
+
+  const project = await getProject(slug);
   if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
@@ -18,10 +23,14 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
+  const { slug } = await params;
+  const auth = await requireAuth(request, ['ADMIN']);
+  if (auth instanceof NextResponse) return auth;
+
   const body = await request.json();
-  const project = await updateProject(params.slug, body);
+  const project = await updateProject(slug, body);
   if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
@@ -29,10 +38,14 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: { slug: string } },
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const deleted = await deleteProject(params.slug);
+  const { slug } = await params;
+  const auth = await requireAuth(request, ['ADMIN']);
+  if (auth instanceof NextResponse) return auth;
+
+  const deleted = await deleteProject(slug);
   if (!deleted) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }

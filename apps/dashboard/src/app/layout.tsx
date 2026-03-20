@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import './globals.css';
+import { AuthNavbar } from '../components/AuthNavbar';
 
 export const metadata: Metadata = {
   title: 'Pulse — Feature Flags',
@@ -25,7 +26,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthNavbar />
+        {children}
+      </body>
     </html>
   );
 }

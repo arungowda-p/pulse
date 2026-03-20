@@ -13,6 +13,7 @@ import { PageHeader } from '../../../components/PageHeader';
 import { FlagModal } from '../../../components/FlagModal';
 import { ClientModal } from '../../../components/ClientModal';
 import { EnvironmentModal } from '../../../components/EnvironmentModal';
+import { ConfirmModal } from '../../../components/ConfirmModal';
 import {
   HiPlus,
   HiArrowLeft,
@@ -67,6 +68,22 @@ export default function ProjectDashboard() {
   const [flagModal, setFlagModal] = useState<'create' | Flag | null>(null);
   const [clientModal, setClientModal] = useState(false);
   const [envModal, setEnvModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: 'flag' | 'env' | 'client';
+    id: string;
+    label: string;
+  } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [busyActions, setBusyActions] = useState<Set<string>>(new Set());
+
+  const markBusy = (key: string) =>
+    setBusyActions((prev) => new Set(prev).add(key));
+  const clearBusy = (key: string) =>
+    setBusyActions((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
 
   const selectedEnv =
     activeEnv !== 'project'
@@ -124,48 +141,54 @@ export default function ProjectDashboard() {
   /* ── Toggle logic ─────────────────────────────────────── */
 
   const handleToggle = async (flag: FlagWithOverrides) => {
-    if (activeEnv === 'project') {
-      const updated = await request<Flag>(
-        'PATCH',
-        `/projects/${slug}/flags/${flag.key}`,
-        { on: !flag.on },
-      );
-      setFlags((prev) =>
-        prev.map((f) =>
-          f.key === flag.key ? { ...f, on: updated.on } : f,
-        ),
-      );
-    } else if (activeClient === 'env') {
-      const envId = activeEnv;
-      const envOv = flag.envOverrides.find(
-        (o) => o.environmentId === envId,
-      );
-      const currentValue = envOv ? envOv.on : flag.on;
-      await request(
-        'PUT',
-        `/projects/${slug}/flags/${flag.key}/env-overrides/${envId}`,
-        { on: !currentValue },
-      );
-      reload();
-    } else {
-      const clientId = activeClient;
-      const clientOv = flag.overrides.find(
-        (o) => o.clientId === clientId,
-      );
-      const envOv = flag.envOverrides.find(
-        (o) => o.environmentId === activeEnv,
-      );
-      const currentValue = clientOv
-        ? clientOv.on
-        : envOv
-          ? envOv.on
-          : flag.on;
-      await request(
-        'PUT',
-        `/projects/${slug}/flags/${flag.key}/overrides/${clientId}`,
-        { on: !currentValue },
-      );
-      reload();
+    const actionKey = `toggle-${flag.key}`;
+    markBusy(actionKey);
+    try {
+      if (activeEnv === 'project') {
+        const updated = await request<Flag>(
+          'PATCH',
+          `/projects/${slug}/flags/${flag.key}`,
+          { on: !flag.on },
+        );
+        setFlags((prev) =>
+          prev.map((f) =>
+            f.key === flag.key ? { ...f, on: updated.on } : f,
+          ),
+        );
+      } else if (activeClient === 'env') {
+        const envId = activeEnv;
+        const envOv = flag.envOverrides.find(
+          (o) => o.environmentId === envId,
+        );
+        const currentValue = envOv ? envOv.on : flag.on;
+        await request(
+          'PUT',
+          `/projects/${slug}/flags/${flag.key}/env-overrides/${envId}`,
+          { on: !currentValue },
+        );
+        reload();
+      } else {
+        const clientId = activeClient;
+        const clientOv = flag.overrides.find(
+          (o) => o.clientId === clientId,
+        );
+        const envOv = flag.envOverrides.find(
+          (o) => o.environmentId === activeEnv,
+        );
+        const currentValue = clientOv
+          ? clientOv.on
+          : envOv
+            ? envOv.on
+            : flag.on;
+        await request(
+          'PUT',
+          `/projects/${slug}/flags/${flag.key}/overrides/${clientId}`,
+          { on: !currentValue },
+        );
+        reload();
+      }
+    } finally {
+      clearBusy(actionKey);
     }
   };
 
@@ -173,22 +196,34 @@ export default function ProjectDashboard() {
     flagKey: string,
     envId: string,
   ) => {
-    await request(
-      'DELETE',
-      `/projects/${slug}/flags/${flagKey}/env-overrides/${envId}`,
-    );
-    reload();
+    const actionKey = `reset-${flagKey}`;
+    markBusy(actionKey);
+    try {
+      await request(
+        'DELETE',
+        `/projects/${slug}/flags/${flagKey}/env-overrides/${envId}`,
+      );
+      reload();
+    } finally {
+      clearBusy(actionKey);
+    }
   };
 
   const handleResetClientOverride = async (
     flagKey: string,
     clientId: string,
   ) => {
-    await request(
-      'DELETE',
-      `/projects/${slug}/flags/${flagKey}/overrides/${clientId}`,
-    );
-    reload();
+    const actionKey = `reset-${flagKey}`;
+    markBusy(actionKey);
+    try {
+      await request(
+        'DELETE',
+        `/projects/${slug}/flags/${flagKey}/overrides/${clientId}`,
+      );
+      reload();
+    } finally {
+      clearBusy(actionKey);
+    }
   };
 
   /* ── CRUD handlers ────────────────────────────────────── */
@@ -216,14 +251,8 @@ export default function ProjectDashboard() {
     reload();
   };
 
-  const handleDeleteFlag = async (key: string) => {
-    if (!confirm(`Delete flag "${key}"?`)) return;
-    try {
-      await request('DELETE', `/projects/${slug}/flags/${key}`);
-      reload();
-    } catch (e) {
-      alert((e as Error).message);
-    }
+  const handleDeleteFlag = (key: string) => {
+    setDeleteConfirm({ type: 'flag', id: key, label: key });
   };
 
   const handleEnvSave = async (payload: { name: string }) => {
@@ -232,25 +261,10 @@ export default function ProjectDashboard() {
     reload();
   };
 
-  const handleDeleteEnv = async (envId: string) => {
+  const handleDeleteEnv = (envId: string) => {
     const env = environments.find((e) => e.id === envId);
-    if (
-      !confirm(
-        `Delete environment "${env?.name}" and all its clients?`,
-      )
-    )
-      return;
     if (!env) return;
-    try {
-      await request(
-        'DELETE',
-        `/projects/${slug}/environments/${env.slug}`,
-      );
-      if (activeEnv === envId) setActiveEnv('project');
-      reload();
-    } catch (e) {
-      alert((e as Error).message);
-    }
+    setDeleteConfirm({ type: 'env', id: envId, label: env.name });
   };
 
   const handleClientSave = async (payload: { name: string }) => {
@@ -264,19 +278,41 @@ export default function ProjectDashboard() {
     loadClients();
   };
 
-  const handleDeleteClient = async (clientId: string) => {
+  const handleDeleteClient = (clientId: string) => {
     const client = clients.find((c) => c.id === clientId);
-    if (!confirm(`Delete client "${client?.name}"?`)) return;
-    if (!selectedEnv) return;
+    if (!client) return;
+    setDeleteConfirm({ type: 'client', id: clientId, label: client.name });
+  };
+
+  const executeDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleteLoading(true);
     try {
-      await request(
-        'DELETE',
-        `/projects/${slug}/environments/${selectedEnv.slug}/clients/${clientId}`,
-      );
-      if (activeClient === clientId) setActiveClient('env');
-      loadClients();
+      if (deleteConfirm.type === 'flag') {
+        await request('DELETE', `/projects/${slug}/flags/${deleteConfirm.id}`);
+        reload();
+      } else if (deleteConfirm.type === 'env') {
+        const env = environments.find((e) => e.id === deleteConfirm.id);
+        if (env) {
+          await request('DELETE', `/projects/${slug}/environments/${env.slug}`);
+          if (activeEnv === deleteConfirm.id) setActiveEnv('project');
+          reload();
+        }
+      } else if (deleteConfirm.type === 'client') {
+        if (selectedEnv) {
+          await request(
+            'DELETE',
+            `/projects/${slug}/environments/${selectedEnv.slug}/clients/${deleteConfirm.id}`,
+          );
+          if (activeClient === deleteConfirm.id) setActiveClient('env');
+          loadClients();
+        }
+      }
+      setDeleteConfirm(null);
     } catch (e) {
       alert((e as Error).message);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -576,6 +612,7 @@ export default function ProjectDashboard() {
                           <Toggle
                             checked={value}
                             label={`Toggle ${flag.key}`}
+                            loading={busyActions.has(`toggle-${flag.key}`)}
                             onClick={() => handleToggle(flag)}
                           />
                           {/* Reset env override */}
@@ -584,6 +621,7 @@ export default function ProjectDashboard() {
                             source === 'env' && (
                               <button
                                 type="button"
+                                disabled={busyActions.has(`reset-${flag.key}`)}
                                 onClick={() =>
                                   handleResetEnvOverride(
                                     flag.key,
@@ -591,9 +629,13 @@ export default function ProjectDashboard() {
                                   )
                                 }
                                 title="Reset to project default"
-                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600"
+                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                <HiArrowPath className="h-3.5 w-3.5" />
+                                {busyActions.has(`reset-${flag.key}`) ? (
+                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+                                ) : (
+                                  <HiArrowPath className="h-3.5 w-3.5" />
+                                )}
                               </button>
                             )}
                           {/* Reset client override */}
@@ -602,6 +644,7 @@ export default function ProjectDashboard() {
                             source === 'client' && (
                               <button
                                 type="button"
+                                disabled={busyActions.has(`reset-${flag.key}`)}
                                 onClick={() =>
                                   handleResetClientOverride(
                                     flag.key,
@@ -609,9 +652,13 @@ export default function ProjectDashboard() {
                                   )
                                 }
                                 title="Reset to environment value"
-                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600"
+                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                <HiArrowPath className="h-3.5 w-3.5" />
+                                {busyActions.has(`reset-${flag.key}`) ? (
+                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+                                ) : (
+                                  <HiArrowPath className="h-3.5 w-3.5" />
+                                )}
                               </button>
                             )}
                           {/* Edit / delete only on project tab */}
@@ -668,6 +715,35 @@ export default function ProjectDashboard() {
         <ClientModal
           onClose={() => setClientModal(false)}
           onSave={handleClientSave}
+        />
+      )}
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title={
+            deleteConfirm.type === 'flag'
+              ? 'Delete Flag'
+              : deleteConfirm.type === 'env'
+                ? 'Delete Environment'
+                : 'Delete Client'
+          }
+          message={
+            deleteConfirm.type === 'flag'
+              ? `Delete flag "${deleteConfirm.label}" and all its overrides? This action cannot be undone.`
+              : deleteConfirm.type === 'env'
+                ? `Delete environment "${deleteConfirm.label}" and all its clients and overrides? This action cannot be undone.`
+                : `Delete client "${deleteConfirm.label}" and all its flag overrides? This action cannot be undone.`
+          }
+          confirmLabel={
+            deleteConfirm.type === 'flag'
+              ? 'Delete Flag'
+              : deleteConfirm.type === 'env'
+                ? 'Delete Environment'
+                : 'Delete Client'
+          }
+          loading={deleteLoading}
+          onConfirm={executeDelete}
+          onCancel={() => setDeleteConfirm(null)}
         />
       )}
     </div>

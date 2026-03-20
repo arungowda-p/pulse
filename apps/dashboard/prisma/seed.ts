@@ -1,19 +1,33 @@
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import fs from 'fs';
+import bcrypt from 'bcryptjs';
 
 const schemaDir = path.resolve(__dirname);
 const dbFile = path.join(schemaDir, 'pgdev.db');
 
-if (!fs.existsSync(dbFile)) {
-  console.error('Database file not found at:', dbFile);
-  process.exit(1);
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = `file:${dbFile}`;
 }
-
-process.env.DATABASE_URL = `file:${dbFile}`;
 const prisma = new PrismaClient();
 
 async function main() {
+  /* ── Admin user ──────────────────────────────────────── */
+
+  const passwordHash = await bcrypt.hash('P@ssw0rd1!', 10);
+  const admin = await prisma.user.upsert({
+    where: { username: 'arun-admin' },
+    update: {},
+    create: {
+      username: 'arun-admin',
+      email: 'parungowdamuldk@gmail.com',
+      passwordHash,
+      role: 'ADMIN',
+    },
+  });
+  console.log(`Admin user: ${admin.username} (${admin.email})`);
+
+  /* ── Project ─────────────────────────────────────────── */
+
   const project = await prisma.project.upsert({
     where: { slug: 'pulse-demo' },
     update: {},

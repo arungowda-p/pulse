@@ -13,16 +13,27 @@ function findDbFile(): string {
   return candidates[0].replace(/\\/g, '/');
 }
 
-const databaseUrl = `file:${findDbFile()}`;
-
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient(): PrismaClient {
+  if (globalForPrisma.prisma) return globalForPrisma.prisma;
+
+  const databaseUrl = `file:${findDbFile()}`;
+  const client = new PrismaClient({
     datasources: { db: { url: databaseUrl } },
   });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = client;
+  }
+  return client;
+}
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = createPrismaClient();
+    return Reflect.get(client, prop);
+  },
+});

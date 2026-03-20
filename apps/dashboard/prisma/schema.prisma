@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Project {
-  id           String        @id @default(uuid())
+  id           String              @id @default(uuid())
   name         String
-  slug         String        @unique
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  slug         String              @unique
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
   environments Environment[]
   flags        Flag[]
+  userAccess   UserProjectAccess[]
 }
 
 model Environment {
@@ -39,6 +40,7 @@ model Client {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
   overrides     ClientFlagOverride[]
+  userAccess    UserClientAccess[]
 
   @@unique([environmentId, name])
 }
@@ -83,4 +85,40 @@ model ClientFlagOverride {
   updatedAt DateTime @updatedAt
 
   @@unique([clientId, flagId])
+}
+
+// ── Auth & RBAC ──────────────────────────────────────────
+
+model User {
+  id            String              @id @default(uuid())
+  username      String              @unique
+  email         String              @unique
+  passwordHash  String
+  role          String              @default("CLIENT_ADMIN") // ADMIN | PROJECT_ADMIN | CLIENT_ADMIN
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  projectAccess UserProjectAccess[]
+  clientAccess  UserClientAccess[]
+}
+
+model UserProjectAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId])
+}
+
+model UserClientAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, clientId])
 }

@@ -6,6 +6,7 @@ import { Button } from '../components/ui';
 import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
 import { ProjectModal } from '../components/ProjectModal';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { HiPlus, HiFolder, HiFlag, HiServerStack } from 'react-icons/hi2';
 import type { ProjectWithCounts } from '../types/flag';
 
@@ -36,6 +37,8 @@ export default function ProjectListPage() {
   const [projects, setProjects] = useState<ProjectWithCounts[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ slug: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadProjects = async () => {
     setLoading(true);
@@ -56,17 +59,20 @@ export default function ProjectListPage() {
   const handleCreate = async (payload: { name: string }) => {
     await request('POST', '/projects', payload);
     setModal(false);
-    loadProjects();
+    await loadProjects();
   };
 
-  const handleDelete = async (slug: string) => {
-    if (!confirm(`Delete project "${slug}" and all its flags, clients, and overrides?`))
-      return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await request('DELETE', `/projects/${slug}`);
+      await request('DELETE', `/projects/${deleteTarget.slug}`);
+      setDeleteTarget(null);
       loadProjects();
     } catch (e) {
       alert((e as Error).message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -145,7 +151,7 @@ export default function ProjectListPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(p.slug);
+                      setDeleteTarget({ slug: p.slug, name: p.name });
                     }}
                     className="ml-4 rounded-lg p-2 text-slate-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
                     aria-label={`Delete ${p.name}`}
@@ -175,6 +181,17 @@ export default function ProjectListPage() {
         <ProjectModal
           onClose={() => setModal(false)}
           onSave={handleCreate}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Project"
+          message={`Delete "${deleteTarget.name}" and all its flags, environments, clients, and overrides? This action cannot be undone.`}
+          confirmLabel="Delete Project"
+          loading={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>
