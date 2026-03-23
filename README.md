@@ -25,7 +25,7 @@ Project Defaults → Environment Overrides → Client Overrides
 - **Authentication** — JWT-based login with username or email, HTTP-only cookie sessions
 - **Role-based access control** — three roles with cascading permissions (see below)
 - **User management API** — admins can create users and assign them to projects or clients
-- **SDK** — lightweight client SDK (`@launchdarkly-nx/sdk`) for evaluating flags from any JS/TS app
+- **SDK** — lightweight client SDK (`@pulse/sdk`) for evaluating flags from any JS/TS app
 
 ## Roles & Permissions
 
@@ -202,10 +202,10 @@ All endpoints are served by the dashboard app under `/api`.
 
 ## SDK
 
-The `@launchdarkly-nx/sdk` package (`libs/sdk`) provides a lightweight client for evaluating flags.
+The `@pulse/sdk` package (`libs/sdk`) provides a lightweight client for evaluating flags.
 
 ```typescript
-import { createClient } from '@launchdarkly-nx/sdk';
+import { createClient } from '@pulse/sdk';
 
 const client = createClient({
   baseUrl: 'http://localhost:4200',

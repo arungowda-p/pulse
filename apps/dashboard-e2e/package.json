@@ -1,5 +1,5 @@
 {
-  "name": "@launchdarkly-nx/dashboard-e2e",
+  "name": "@pulse/dashboard-e2e",
   "version": "0.0.1",
   "private": true,
   "nx": {

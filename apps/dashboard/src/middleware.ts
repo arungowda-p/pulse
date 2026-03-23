@@ -6,7 +6,13 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'pulse-dev-secret-change-in-production',
 );
 
-const PUBLIC_PATHS = ['/login', '/api/auth/', '/api/eval/'];
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth/',
+  '/api/eval/',
+  '/api/stream/',
+  '/api/track',
+];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
