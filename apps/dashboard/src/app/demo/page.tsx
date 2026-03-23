@@ -25,7 +25,7 @@ export default function DemoPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+      <div className="w-full px-4 py-10 sm:px-6 lg:px-8 xl:px-10">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-2xl font-bold tracking-tight">
             Pulse SDK playground

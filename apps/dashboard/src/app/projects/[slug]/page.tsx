@@ -57,6 +57,8 @@ export default function ProjectDashboard() {
   const slug = params.slug;
 
   const [project, setProject] = useState<Project | null>(null);
+  const [allowedOriginsInput, setAllowedOriginsInput] = useState('');
+  const [originsSaving, setOriginsSaving] = useState(false);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [flags, setFlags] = useState<FlagWithOverrides[]>([]);
@@ -90,6 +92,12 @@ export default function ProjectDashboard() {
       ? environments.find((e) => e.id === activeEnv)
       : null;
 
+  const parseOrigins = (raw: string): string[] =>
+    raw
+      .split(/[\n,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
   const loadCore = useCallback(async () => {
     setLoading(true);
     try {
@@ -99,6 +107,7 @@ export default function ProjectDashboard() {
         request<FlagWithOverrides[]>('GET', `/projects/${slug}/flags`),
       ]);
       setProject(p);
+      setAllowedOriginsInput((p.allowedOrigins ?? []).join('\n'));
       setEnvironments(envs);
       setFlags(f);
     } catch (e) {
@@ -138,6 +147,39 @@ export default function ProjectDashboard() {
     loadClients();
   };
 
+  const handleSaveOrigins = async () => {
+    if (!project) return;
+    setOriginsSaving(true);
+    try {
+      const updated = await request<Project>('PATCH', `/projects/${slug}`, {
+        allowedOrigins: parseOrigins(allowedOriginsInput),
+      });
+      setProject(updated);
+      setAllowedOriginsInput((updated.allowedOrigins ?? []).join('\n'));
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setOriginsSaving(false);
+    }
+  };
+
+  const handleRemoveOrigin = async (origin: string) => {
+    if (!project) return;
+    const next = (project.allowedOrigins ?? []).filter((item) => item !== origin);
+    setOriginsSaving(true);
+    try {
+      const updated = await request<Project>('PATCH', `/projects/${slug}`, {
+        allowedOrigins: next,
+      });
+      setProject(updated);
+      setAllowedOriginsInput((updated.allowedOrigins ?? []).join('\n'));
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setOriginsSaving(false);
+    }
+  };
+
   /* ── Toggle logic ─────────────────────────────────────── */
 
   const handleToggle = async (flag: FlagWithOverrides) => {
@@ -151,15 +193,11 @@ export default function ProjectDashboard() {
           { on: !flag.on },
         );
         setFlags((prev) =>
-          prev.map((f) =>
-            f.key === flag.key ? { ...f, on: updated.on } : f,
-          ),
+          prev.map((f) => (f.key === flag.key ? { ...f, on: updated.on } : f)),
         );
       } else if (activeClient === 'env') {
         const envId = activeEnv;
-        const envOv = flag.envOverrides.find(
-          (o) => o.environmentId === envId,
-        );
+        const envOv = flag.envOverrides.find((o) => o.environmentId === envId);
         const currentValue = envOv ? envOv.on : flag.on;
         await request(
           'PUT',
@@ -169,9 +207,7 @@ export default function ProjectDashboard() {
         reload();
       } else {
         const clientId = activeClient;
-        const clientOv = flag.overrides.find(
-          (o) => o.clientId === clientId,
-        );
+        const clientOv = flag.overrides.find((o) => o.clientId === clientId);
         const envOv = flag.envOverrides.find(
           (o) => o.environmentId === activeEnv,
         );
@@ -192,10 +228,7 @@ export default function ProjectDashboard() {
     }
   };
 
-  const handleResetEnvOverride = async (
-    flagKey: string,
-    envId: string,
-  ) => {
+  const handleResetEnvOverride = async (flagKey: string, envId: string) => {
     const actionKey = `reset-${flagKey}`;
     markBusy(actionKey);
     try {
@@ -325,9 +358,7 @@ export default function ProjectDashboard() {
       return { value: flag.on, source: 'project' };
     }
 
-    const envOv = flag.envOverrides.find(
-      (o) => o.environmentId === activeEnv,
-    );
+    const envOv = flag.envOverrides.find((o) => o.environmentId === activeEnv);
     const envValue = envOv ? envOv.on : flag.on;
     const hasEnvOverride = !!envOv;
 
@@ -338,9 +369,7 @@ export default function ProjectDashboard() {
       };
     }
 
-    const clientOv = flag.overrides.find(
-      (o) => o.clientId === activeClient,
-    );
+    const clientOv = flag.overrides.find((o) => o.clientId === activeClient);
     if (clientOv) {
       return { value: clientOv.on, source: 'client' };
     }
@@ -357,9 +386,7 @@ export default function ProjectDashboard() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 to-white">
         <div className="flex flex-col items-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-          <p className="mt-4 text-sm text-slate-500">
-            Loading project...
-          </p>
+          <p className="mt-4 text-sm text-slate-500">Loading project...</p>
         </div>
       </div>
     );
@@ -378,10 +405,10 @@ export default function ProjectDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="w-full px-4 py-10 sm:px-6 lg:px-8 xl:px-10">
         <button
           onClick={() => router.push('/')}
-          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-indigo-600"
+          className="no-global-button-border mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-indigo-600"
         >
           <HiArrowLeft className="h-4 w-4" />
           All projects
@@ -424,6 +451,58 @@ export default function ProjectDashboard() {
           }
         />
 
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">
+                Allowed Origins (CORS)
+              </h2>
+              <p className="text-sm text-slate-500">
+                Add one URL per line (or comma-separated) for this project.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveOrigins}
+              disabled={originsSaving}
+              className="self-start sm:self-auto"
+            >
+              {originsSaving ? 'Saving...' : 'Save Origins'}
+            </Button>
+          </div>
+
+          <textarea
+            value={allowedOriginsInput}
+            onChange={(e) => setAllowedOriginsInput(e.target.value)}
+            rows={4}
+            placeholder={`https://myapp.com\nhttps://staging.myapp.com`}
+            className="mt-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 transition-colors focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          />
+
+          {(project.allowedOrigins ?? []).length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {(project.allowedOrigins ?? []).map((origin) => (
+                <span
+                  key={origin}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-700"
+                >
+                  {origin}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveOrigin(origin)}
+                    disabled={originsSaving}
+                    className="rounded-full bg-white px-1.5 py-0.5 text-[11px] text-slate-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                    aria-label={`Remove ${origin}`}
+                  >
+                    x
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* Environment tabs */}
         <div className="mb-3">
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -437,10 +516,7 @@ export default function ProjectDashboard() {
               Project Defaults
             </TabButton>
             {environments.map((env) => (
-              <div
-                key={env.id}
-                className="group relative flex items-center"
-              >
+              <div key={env.id} className="group relative flex items-center">
                 <TabButton
                   active={activeEnv === env.id}
                   onClick={() => setActiveEnv(env.id)}
@@ -490,10 +566,7 @@ export default function ProjectDashboard() {
                 Env Default
               </TabButton>
               {clients.map((c) => (
-                <div
-                  key={c.id}
-                  className="group relative flex items-center"
-                >
+                <div key={c.id} className="group relative flex items-center">
                   <TabButton
                     active={activeClient === c.id}
                     onClick={() => setActiveClient(c.id)}
@@ -535,9 +608,7 @@ export default function ProjectDashboard() {
         {/* Flag table */}
         {flags.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-8 py-14 text-center shadow-sm">
-            <p className="text-lg font-semibold text-slate-900">
-              No flags yet
-            </p>
+            <p className="text-lg font-semibold text-slate-900">No flags yet</p>
             <p className="mt-2 max-w-sm text-sm text-slate-600">
               Create your first flag to start toggling features.
             </p>
@@ -576,8 +647,7 @@ export default function ProjectDashboard() {
                           : 'Inherited (env)'
                         : 'Inherited';
                   const isCustom =
-                    source === 'client' ||
-                    (source === 'env' && isEnvDefault);
+                    source === 'client' || (source === 'env' && isEnvDefault);
 
                   return (
                     <Table.Row key={flag.key}>
@@ -623,10 +693,7 @@ export default function ProjectDashboard() {
                                 type="button"
                                 disabled={busyActions.has(`reset-${flag.key}`)}
                                 onClick={() =>
-                                  handleResetEnvOverride(
-                                    flag.key,
-                                    activeEnv,
-                                  )
+                                  handleResetEnvOverride(flag.key, activeEnv)
                                 }
                                 title="Reset to project default"
                                 className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -674,9 +741,7 @@ export default function ProjectDashboard() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() =>
-                                  handleDeleteFlag(flag.key)
-                                }
+                                onClick={() => handleDeleteFlag(flag.key)}
                                 aria-label={`Delete ${flag.key}`}
                                 className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                               >

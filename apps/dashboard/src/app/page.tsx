@@ -56,7 +56,7 @@ export default function ProjectListPage() {
     loadProjects();
   }, []);
 
-  const handleCreate = async (payload: { name: string }) => {
+  const handleCreate = async (payload: { name: string; allowedOrigins: string[] }) => {
     await request('POST', '/projects', payload);
     setModal(false);
     await loadProjects();
@@ -78,7 +78,7 @@ export default function ProjectListPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="w-full px-4 py-10 sm:px-6 lg:px-8 xl:px-10">
         <PageHeader
           title="Projects"
           description="Each project contains feature flags, environments, and clients."

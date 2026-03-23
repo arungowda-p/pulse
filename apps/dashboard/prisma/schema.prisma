@@ -16,6 +16,18 @@ model Project {
   environments Environment[]
   flags        Flag[]
   userAccess   UserProjectAccess[]
+  allowedOrigins ProjectAllowedOrigin[]
+}
+
+model ProjectAllowedOrigin {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  origin    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, origin])
 }
 
 model Environment {

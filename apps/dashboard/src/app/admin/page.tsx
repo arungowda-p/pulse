@@ -48,10 +48,15 @@ interface ProjectTreeNode {
 
 const API = '/api';
 
-async function request<T>(method: string, path: string, body?: object): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: object,
+): Promise<T> {
   const opts: RequestInit = { method, headers: {} };
   if (body) {
-    (opts.headers as Record<string, string>)['Content-Type'] = 'application/json';
+    (opts.headers as Record<string, string>)['Content-Type'] =
+      'application/json';
     opts.body = JSON.stringify(body);
   }
   const res = await fetch(API + path, opts);
@@ -86,8 +91,13 @@ export default function AdminPage() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [modal, setModal] = useState<'create' | UserWithAccess | null>(null);
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; username: string } | null>(null);
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
+    new Set(),
+  );
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    username: string;
+  } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -126,7 +136,10 @@ export default function AdminPage() {
   }, [users, search]);
 
   const byProject = useMemo(() => {
-    const map = new Map<string, { project: ProjectTreeNode; users: UserWithAccess[] }>();
+    const map = new Map<
+      string,
+      { project: ProjectTreeNode; users: UserWithAccess[] }
+    >();
 
     for (const p of projectTree) {
       map.set(p.id, { project: p, users: [] });
@@ -200,10 +213,10 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="w-full px-4 py-10 sm:px-6 lg:px-8 xl:px-10">
         <button
           onClick={() => router.push('/')}
-          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-indigo-600"
+          className="no-global-button-border mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-indigo-600"
         >
           <HiArrowLeft className="h-4 w-4" />
           Back to Projects
@@ -280,9 +293,15 @@ export default function AdminPage() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/60">
-                    <th className="px-5 py-3 font-semibold text-slate-600">User</th>
-                    <th className="px-5 py-3 font-semibold text-slate-600">Role</th>
-                    <th className="px-5 py-3 font-semibold text-slate-600">Access</th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">
+                      User
+                    </th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">
+                      Role
+                    </th>
+                    <th className="px-5 py-3 font-semibold text-slate-600">
+                      Access
+                    </th>
                     <th className="px-5 py-3 text-right font-semibold text-slate-600">
                       Actions
                     </th>
@@ -296,7 +315,9 @@ export default function AdminPage() {
                       isAdmin={isAdmin}
                       isSelf={u.id === me?.id}
                       onEdit={() => setModal(u)}
-                      onDelete={() => setDeleteTarget({ id: u.id, username: u.username })}
+                      onDelete={() =>
+                        setDeleteTarget({ id: u.id, username: u.username })
+                      }
                     />
                   ))}
                 </tbody>
@@ -310,9 +331,13 @@ export default function AdminPage() {
           <div className="space-y-3">
             {byProject.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
-                <p className="text-lg font-semibold text-slate-900">No users found</p>
+                <p className="text-lg font-semibold text-slate-900">
+                  No users found
+                </p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {search ? 'Try a different search term.' : 'Assign users to projects or clients.'}
+                  {search
+                    ? 'Try a different search term.'
+                    : 'Assign users to projects or clients.'}
                 </p>
               </div>
             ) : (
@@ -363,12 +388,14 @@ export default function AdminPage() {
                               {project.environments.length} env
                               {project.environments.length !== 1 ? 's' : ''}
                               {' · '}
-                              {totalClients} client{totalClients !== 1 ? 's' : ''}
+                              {totalClients} client
+                              {totalClients !== 1 ? 's' : ''}
                             </p>
                           </div>
                         </div>
                         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                          {projectUsers.length} user{projectUsers.length !== 1 ? 's' : ''}
+                          {projectUsers.length} user
+                          {projectUsers.length !== 1 ? 's' : ''}
                         </span>
                       </button>
 
@@ -384,7 +411,10 @@ export default function AdminPage() {
                                   isSelf={u.id === me?.id}
                                   onEdit={() => setModal(u)}
                                   onDelete={() =>
-                                    setDeleteTarget({ id: u.id, username: u.username })
+                                    setDeleteTarget({
+                                      id: u.id,
+                                      username: u.username,
+                                    })
                                   }
                                   scopeProjectId={project.id}
                                 />
@@ -466,7 +496,9 @@ function UserRow({
       </td>
       <td className="max-w-xs px-5 py-3.5">
         {user.role === 'ADMIN' ? (
-          <span className="text-xs font-medium text-indigo-600">Full access</span>
+          <span className="text-xs font-medium text-indigo-600">
+            Full access
+          </span>
         ) : (
           <div className="flex flex-wrap gap-1">
             {!scopeProjectId &&
@@ -486,7 +518,9 @@ function UserRow({
               >
                 {c.name}
                 {!scopeProjectId && (
-                  <span className="ml-1 text-amber-500">({c.environmentName})</span>
+                  <span className="ml-1 text-amber-500">
+                    ({c.environmentName})
+                  </span>
                 )}
               </span>
             ))}

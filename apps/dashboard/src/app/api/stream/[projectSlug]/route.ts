@@ -21,8 +21,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ projectSlug: string }> },
 ) {
-  const corsHeaders = getCorsHeaders(request);
   const { projectSlug } = await params;
+  const corsHeaders = await getCorsHeaders(request, projectSlug);
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {

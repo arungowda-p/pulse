@@ -31,8 +31,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ projectSlug: string }> },
 ) {
-  const corsHeaders = getCorsHeaders(request);
   const { projectSlug } = await params;
+  const corsHeaders = await getCorsHeaders(request, projectSlug);
   const environmentId =
     request.nextUrl.searchParams.get('environmentId') || undefined;
   const clientId = request.nextUrl.searchParams.get('clientId') || undefined;

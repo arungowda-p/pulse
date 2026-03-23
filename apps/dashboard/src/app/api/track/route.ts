@@ -5,12 +5,12 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
-  const corsHeaders = getCorsHeaders(request);
   const body = await request.json().catch(() => null);
   const eventName =
     body && typeof body.eventName === 'string' ? body.eventName.trim() : '';
   const projectSlug =
     body && typeof body.projectSlug === 'string' ? body.projectSlug.trim() : '';
+  const corsHeaders = await getCorsHeaders(request, projectSlug || undefined);
 
   if (!eventName) {
     return NextResponse.json(
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function OPTIONS(request: NextRequest) {
-  const corsHeaders = getCorsHeaders(request);
+  const corsHeaders = await getCorsHeaders(request);
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders,

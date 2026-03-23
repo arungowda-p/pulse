@@ -1,17 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Input } from './ui';
+import { Button, Input, Textarea } from './ui';
 
 interface ProjectModalProps {
   onClose: () => void;
-  onSave: (payload: { name: string }) => Promise<void>;
+  onSave: (payload: { name: string; allowedOrigins: string[] }) => Promise<void>;
 }
 
 export function ProjectModal({ onClose, onSave }: ProjectModalProps) {
   const [name, setName] = useState('');
+  const [origins, setOrigins] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const parseOrigins = (raw: string): string[] =>
+    raw
+      .split(/[\n,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +26,10 @@ export function ProjectModal({ onClose, onSave }: ProjectModalProps) {
     setError('');
     setSaving(true);
     try {
-      await onSave({ name: name.trim() });
+      await onSave({
+        name: name.trim(),
+        allowedOrigins: parseOrigins(origins),
+      });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -48,6 +58,17 @@ export function ProjectModal({ onClose, onSave }: ProjectModalProps) {
             required
             hint="A URL-friendly slug will be generated from the name"
           />
+          <Textarea
+            label="Allowed origins (optional)"
+            value={origins}
+            onChange={(e) => setOrigins(e.target.value)}
+            rows={4}
+            placeholder={`https://myapp.com\nhttps://staging.myapp.com`}
+          />
+          <p className="-mt-2 text-xs text-slate-500">
+            Add one URL per line (or comma-separated). Only HTTP/HTTPS origins
+            are accepted.
+          </p>
           {error ? (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}

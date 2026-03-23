@@ -26,8 +26,11 @@ export async function PATCH(
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params;
-  const auth = await requireAuth(request, ['ADMIN']);
+  const auth = await requireProjectAccess(request, slug);
   if (auth instanceof NextResponse) return auth;
+  if (auth.role === 'CLIENT_ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const body = await request.json();
   const project = await updateProject(slug, body);

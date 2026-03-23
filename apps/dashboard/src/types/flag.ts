@@ -4,6 +4,7 @@ export interface Project {
   slug: string;
   createdAt: string;
   updatedAt: string;
+  allowedOrigins?: string[];
 }
 
 export interface ProjectWithCounts extends Project {

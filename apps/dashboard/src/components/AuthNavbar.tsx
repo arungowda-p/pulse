@@ -49,10 +49,10 @@ export function AuthNavbar() {
 
   return (
     <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      <div className="flex w-full items-center justify-between px-4 py-3 sm:px-6 lg:px-8 xl:px-10">
         <button
           onClick={() => router.push('/')}
-          className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+          className="no-global-button-border flex items-center gap-2.5 transition-opacity hover:opacity-80"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 shadow-sm">
             <svg
