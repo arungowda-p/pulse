@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFlagsForProject } from '../../../../lib/flags-store';
+import { getCorsHeaders } from '../../../../lib/cors';
 
 function resolveFlagValue(
   flag: {
@@ -30,6 +31,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ projectSlug: string }> },
 ) {
+  const corsHeaders = getCorsHeaders(request);
   const { projectSlug } = await params;
   const environmentId =
     request.nextUrl.searchParams.get('environmentId') || undefined;
@@ -46,5 +48,5 @@ export async function GET(
   return NextResponse.json({
     projectSlug,
     flags: evaluated,
-  });
+  }, { headers: corsHeaders });
 }

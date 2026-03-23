@@ -58,6 +58,7 @@ export function createClient(options: ClientOptions) {
   let stopped = false;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let streamAbortController: AbortController | null = null;
+  const updateListeners = new Set<() => void>();
 
   const mergeContext = (ctx: Context = {}): Context => ({
     ...defaultContext,
@@ -79,6 +80,7 @@ export function createClient(options: ClientOptions) {
       if (flag?.key) next[flag.key] = flag;
     }
     flagsByKey = next;
+    updateListeners.forEach((listener) => listener());
   };
 
   const scheduleReconnect = () => {
@@ -228,6 +230,14 @@ export function createClient(options: ClientOptions) {
     reconnectTimer = null;
     streamAbortController?.abort();
     streamAbortController = null;
+    updateListeners.clear();
+  }
+
+  function subscribe(listener: () => void) {
+    updateListeners.add(listener);
+    return () => {
+      updateListeners.delete(listener);
+    };
   }
 
   if (options.connect !== false) {
@@ -237,6 +247,7 @@ export function createClient(options: ClientOptions) {
   return {
     connect,
     close,
+    subscribe,
     variation,
     allFlags,
     variationAll,

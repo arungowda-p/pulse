@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getCorsHeaders } from '../../../lib/cors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const corsHeaders = getCorsHeaders(request);
   const body = await request.json().catch(() => null);
   const eventName =
     body && typeof body.eventName === 'string' ? body.eventName.trim() : '';
@@ -13,7 +15,7 @@ export async function POST(request: NextRequest) {
   if (!eventName) {
     return NextResponse.json(
       { error: 'eventName is required' },
-      { status: 400 },
+      { status: 400, headers: corsHeaders },
     );
   }
 
@@ -26,5 +28,13 @@ export async function POST(request: NextRequest) {
     ts: Date.now(),
   });
 
-  return NextResponse.json({ ok: true }, { status: 202 });
+  return NextResponse.json({ ok: true }, { status: 202, headers: corsHeaders });
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const corsHeaders = getCorsHeaders(request);
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
 }

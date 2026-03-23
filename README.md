@@ -91,7 +91,7 @@ pulse-nx/
    npx nx dev dashboard
    ```
 
-4. **Open:** http://localhost:4200
+4. **Open:** http://localhost:4000
 
 5. **Login with the seeded admin account:**
 
@@ -208,18 +208,44 @@ The `@pulse/sdk` package (`libs/sdk`) provides a lightweight client for evaluati
 import { createClient } from '@pulse/sdk';
 
 const client = createClient({
-  baseUrl: 'http://localhost:4200',
+  baseUrl: 'http://localhost:4000',
+  projectSlug: 'my-project',
   defaultValue: false,
 });
 
 const isEnabled = await client.variation('dark-mode');
-const allFlags  = await client.variationAll(['dark-mode', 'new-checkout']);
+const allFlags = await client.allFlags();
+await client.track('checkout_started', { cartValue: 129.99 });
 ```
 
 | Method                          | Returns                              | Description                       |
 |---------------------------------|--------------------------------------|-----------------------------------|
 | `variation(flagKey, ctx?)`      | `Promise<boolean>`                   | Evaluate a single flag            |
+| `allFlags(ctx?)`                | `Promise<Record<string, boolean>>`   | Evaluate all flags for context    |
 | `variationAll(flagKeys, ctx?)`  | `Promise<Record<string, boolean | null>>` | Evaluate multiple flags      |
+| `track(eventName, data?, ctx?)` | `Promise<void>`                      | Send analytics/event telemetry    |
+
+### React plug-and-play hook
+
+```tsx
+import { usePulseFlag, usePulseFlags } from '@pulse/sdk/react';
+
+// For a full map of flags
+const { flags, loading, connected, refresh } = usePulseFlags({
+  baseUrl: 'http://localhost:4000',
+  projectSlug: 'my-project',
+  context: { environmentId: 'prod', clientId: 'web-app' },
+  defaultValue: false,
+});
+
+// For a single flag
+const { value: darkMode } = usePulseFlag('dark-mode', {
+  baseUrl: 'http://localhost:4000',
+  projectSlug: 'my-project',
+  context: { environmentId: 'prod', clientId: 'web-app' },
+  defaultValue: false,
+});
+```
 
 ## Scripts
 

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getFlagsForProject } from '../../../../lib/flags-store';
+import { getCorsHeaders } from '../../../../lib/cors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ projectSlug: string }> },
 ) {
+  const corsHeaders = getCorsHeaders(request);
   const { projectSlug } = await params;
 
   const stream = new ReadableStream<Uint8Array>({
@@ -69,6 +71,7 @@ export async function GET(
 
   return new Response(stream, {
     headers: {
+      ...corsHeaders,
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',

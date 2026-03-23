@@ -24,7 +24,7 @@
       "options": {
         "buildTarget": "dashboard:build",
         "dev": true,
-        "port": 4200
+        "port": 4000
       },
       "configurations": {
         "development": {
