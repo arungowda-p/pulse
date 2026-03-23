@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getFlagsForProject } from '../../../../lib/flags-store';
+import { subscribeProjectFlagChanges } from '../../../../lib/flag-events';
 import { getCorsHeaders } from '../../../../lib/cors';
 
 export const runtime = 'nodejs';
@@ -54,7 +55,12 @@ export async function GET(
         safeEnqueue(new TextEncoder().encode(': heartbeat\n\n'));
       }, 15000);
 
-      const pollTimer = setInterval(pushSnapshot, 2000);
+      const unsubscribe = subscribeProjectFlagChanges(projectSlug, () => {
+        void pushSnapshot();
+      });
+      const pollTimer = setInterval(() => {
+        void pushSnapshot();
+      }, 1000);
       void pushSnapshot();
 
       const cleanup = () => {
@@ -62,6 +68,7 @@ export async function GET(
         closed = true;
         clearInterval(heartbeatTimer);
         clearInterval(pollTimer);
+        unsubscribe();
         controller.close();
       };
 

@@ -103,7 +103,8 @@ export function createClient(options: ClientOptions) {
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
-      const events = buffer.split('\n\n');
+      const normalized = buffer.replace(/\r\n/g, '\n');
+      const events = normalized.split('\n\n');
       buffer = events.pop() ?? '';
       for (const event of events) {
         const dataLines = event

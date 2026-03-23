@@ -3,15 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
+    "@prisma/client": "5.22.0",
+    "@types/node": "25.5.0",
+    "bcryptjs": "3.0.3",
+    "jose": "6.2.2",
     "next": "^15.5.14",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-icons": "^5.4.0"
+    "react-icons": "^5.4.0",
+    "sharp": "0.34.5",
+    "typescript": "5.7.3"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
   },
-  "devDependencies": {
-    "@types/node": "^25.5.0"
+  "scripts": {
+    "start": "next start"
   }
 }

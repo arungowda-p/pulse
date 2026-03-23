@@ -1,5 +1,14 @@
 import { prisma } from './prisma';
+import { notifyProjectFlagChange } from './flag-events';
+import { sendFlagChangedWebhook } from './outbound-webhook';
 import type { Flag, FlagWithOverrides } from '../types/flag';
+
+function emitFlagChange(projectSlug: string, flagKey?: string) {
+  notifyProjectFlagChange(projectSlug, flagKey);
+  void sendFlagChangedWebhook(projectSlug, flagKey).catch((error) => {
+    console.error('[pulse] outbound webhook failed:', error);
+  });
+}
 
 function serialize(row: {
   id: string;
@@ -106,6 +115,7 @@ export async function createFlag(
       projectId: project.id,
     },
   });
+  emitFlagChange(projectSlug, k);
   return serialize(row) as Flag;
 }
 
@@ -131,6 +141,7 @@ export async function updateFlag(
         ...(typeof data.on === 'boolean' && { on: data.on }),
       },
     });
+    emitFlagChange(projectSlug, key);
     return serialize(row) as Flag;
   } catch {
     return null;
@@ -151,6 +162,7 @@ export async function deleteFlag(
     await prisma.flag.delete({
       where: { projectId_key: { projectId: project.id, key } },
     });
+    emitFlagChange(projectSlug, key);
     return true;
   } catch {
     return false;
@@ -182,6 +194,7 @@ export async function setOverride(
     update: { on },
     create: { clientId, flagId: flag.id, on },
   });
+  emitFlagChange(projectSlug, flagKey);
   return { clientId: row.clientId, on: row.on };
 }
 
@@ -206,6 +219,7 @@ export async function removeOverride(
     await prisma.clientFlagOverride.delete({
       where: { clientId_flagId: { clientId, flagId: flag.id } },
     });
+    emitFlagChange(projectSlug, flagKey);
     return true;
   } catch {
     return false;
@@ -239,6 +253,7 @@ export async function setEnvOverride(
     update: { on },
     create: { environmentId, flagId: flag.id, on },
   });
+  emitFlagChange(projectSlug, flagKey);
   return { environmentId: row.environmentId, on: row.on };
 }
 
@@ -265,6 +280,7 @@ export async function removeEnvOverride(
         environmentId_flagId: { environmentId, flagId: flag.id },
       },
     });
+    emitFlagChange(projectSlug, flagKey);
     return true;
   } catch {
     return false;

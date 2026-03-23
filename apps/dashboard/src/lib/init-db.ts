@@ -47,6 +47,12 @@ export async function ensureDatabase() {
     { env, stdio: 'inherit' },
   );
 
+  console.log('[pulse] Generating Prisma client...');
+  execSync(`npx prisma generate --schema="${paths.schema}"`, {
+    env,
+    stdio: 'inherit',
+  });
+
   if (fs.existsSync(paths.seed)) {
     console.log('[pulse] Seeding initial data...');
     execSync(`npx tsx "${paths.seed}"`, { env, stdio: 'inherit' });
